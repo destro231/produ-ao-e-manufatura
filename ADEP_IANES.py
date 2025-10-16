@@ -1,15 +1,17 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Oct 15 13:49:01 2025
-
-@author: LAB-13
-"""
-
 import streamlit as st 
 import pandas as pd
 st.title("produçao e manufatura ianes")
+st.markdown('''
+            <style>
+            .custom-font{
+            font-family: 'Blippo', fantasy
+            font-size: 60px;
+            color: white;
+            }
+            </style>
+            ''', unsafe_allow_html=True)
 st.video('manofaturing.mp4')
-# dadaos
+# dados
 Dados=st.file_uploader('carregar arquivo')
 if Dados is not None:
     df=pd.read_csv(Dados)
@@ -25,6 +27,8 @@ peças = Formulario.text_input("peças produzidas: ")
 pecd = Formulario.text_input("peças defeituosas: ")
 bt1=Formulario.form_submit_button('enviar')
 
+st.markdown('-'*20)
+
 if bt1:
    novo={'data':[novo_data],
         'maquina':[nova_maquina],
@@ -34,33 +38,43 @@ if bt1:
    x=pd.DataFrame(novo)
    df=pd.concat([df,x],ignore_index=True)
    st.dataframe(df)
-   df.to_csv("C:/Users/LAB-13/Desktop/WPy64-31241/trabalho/Data user.csv",index=False)
-DataMachine=st.file_uploader(' arquivo')
-if DataMachine is not None:
-    df=pd.read_csv(DataMachine)
-else:
-    df = []
-st.dataframe(df)
-Form= st.sidebar.form('entrada',clear_on_submit=True)
-Form.header("Edite os dados da maquina:")
+   df.to_csv("Data user.csv",index=False)
+#//////////////////////////////////////////////////////////////////////////////////////
+form = st.sidebar.form('entrada',clear_on_submit=True)
+DataMachine=st.file_uploader(' arquivo')# nome do upload
+try:
+    if DataMachine is not None: 
+        df_arquivo=pd.read_csv(DataMachine)
+    else:
+        df_arquivo = pd.DataFrame()
+    
+# Form= st.sidebar.form('entrada',clear_on_submit=True)#side bar
+# Form.header("Edite os dados da maquina:")
 
-nova_data=Form.text_input("data: ")
-novas_maquina=Form.text_input("maquina: ")
-turno = Form.text_input("turno: ")
-peças = Form.text_input("peças produzidas: ")
-pec = Form.text_input("peças defeituosas: ")
-bt2=Form.form_submit_button('enviar')
+# nova_data=Form.text_input("data: ")
+# novas_maquina=Form.text_input("maquina: ")
+# turno = Form.text_input("turno: ")
+# peças = Form.text_input("peças produzidas: ")
+# pec = Form.text_input("peças defeituosas: ")
+    editar_df= form.data_editor(df)
+    bt2=form.form_submit_button(' salvar')
+   
+    
+#botao 2 novos dados
 
-if bt2:
-    edit={'data':[novo_data],
-           'maquina':[nova_maquina],
-           'turno':[turnos],
-           'peças':[int(peças)],
-           'peças defeituosas':[int(pecd)]}
-    x=pd.DataFrame(edit)
-    df=pd.concat([df,x],ignore_index=True)
-    st.dataframe(df)
-    df.to_csv("C:/Users/LAB-13/Desktop/WPy64-31241/trabalho/DADOS.csv",index=False)
+    if bt2:
+       if not isinstance(df,pd.DataFrame):
+           df=pd.DataFrame()
+    
+       df=pd.concat([df,editar_df],ignore_index=True)
+    form.data_editor(df)
+    df.to_csv("DADOS.csv",index=False)
+except OSError:
+    form.warning("diretorio inexistente")
+except AttributeError:
+    form.warning("sem arquivo")
+#/////////////////////////////////////////////////////////////////////
+
 
 
 
