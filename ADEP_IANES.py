@@ -1,79 +1,137 @@
-import streamlit as st 
-import pandas as pd
-st.title("produçao e manufatura ianes")
-st.markdown('''
-            <style>
-            .custom-font{
-            font-family: 'Blippo', fantasy
-            font-size: 60px;
-            color: white;
-            }
-            </style>
-            ''', unsafe_allow_html=True)
-st.video('manofaturing.mp4')
-# dados
-Dados=st.file_uploader('carregar arquivo')
-if Dados is not None:
-    df=pd.read_csv(Dados)
-else:
-    df=[]
-st.dataframe(df)
-Formulario=st.sidebar.form('novas entradas',clear_on_submit=True)
-Formulario.header("digite os novos dados da maquina:")
-novo_data=Formulario.text_input("data: ")
-nova_maquina=Formulario.text_input("maquina: ")
-turnos = Formulario.text_input("turno: ")
-peças = Formulario.text_input("peças produzidas: ")
-pecd = Formulario.text_input("peças defeituosas: ")
-bt1=Formulario.form_submit_button('enviar')
+import streamlit as st  # Biblioteca para criar a interface web
+import pandas as pd     # Biblioteca para trabalhar com dados em tabela
+import matplotlib.pyplot as plt  # Biblioteca para criar gráficos
 
-st.markdown('-'*20)
+# 1. Carregar o arquivo CSV
+st.title("App de Produção e Manufatura")  # Título do aplicativo
 
-if bt1:
-   novo={'data':[novo_data],
-        'maquina':[nova_maquina],
-          'turno':[turnos],
-          'peças':[int(peças)],
-          'peças defeituosas':[int(pecd)]}
-   x=pd.DataFrame(novo)
-   df=pd.concat([df,x],ignore_index=True)
-   st.dataframe(df)
-   df.to_csv("Data user.csv",index=False)
-#//////////////////////////////////////////////////////////////////////////////////////
-form = st.sidebar.form('entrada',clear_on_submit=True)
-DataMachine=st.file_uploader(' arquivo')# nome do upload
-try:
-    if DataMachine is not None: 
-        df_arquivo=pd.read_csv(DataMachine)
-    else:
-        df_arquivo = pd.DataFrame()
+uploaded_file = st.file_uploader("DADOS.csv")  # Botão para upload do arquivo
+
+if uploaded_file is not None:  # Se o usuário carregou um arquivo
+    df = pd.read_csv(uploaded_file)  # Lê o arquivo e armazena na variável df
+else:  # Se não carregou, cria uma tabela vazia
+    df = pd.DataFrame(columns=['Data', 'Máquina', 'Turno', 'Peças Produzidas', 'Peças Defeituosas'])
+    st.write("Nenhum arquivo carregado. Crie novos dados.")
+
+# Adiciona colunas calculadas se não existirem (para eficiência)
+if 'Peças Boas' not in df.columns:
+    df['Peças Boas'] = df['Peças Produzidas'] - df['Peças Defeituosas']  # Calcula peças boas
+if 'Eficiência (%)' not in df.columns:
+    df['Eficiência (%)'] = (df['Peças Boas'] / df['Peças Produzidas']) * 100  # Calcula eficiência
+    df['Eficiência (%)'] = df['Eficiência (%)'].fillna(0)  # Evita erros se divisão por zero
+
+st.dataframe(df)  # Exibe a tabela
+
+# 2. Formulário para adicionar novos registros
+with st.sidebar.form("adicionar_dados"):  # Formulário no sidebar para adicionar
+    st.header("Adicionar Novo Registro")
+    nova_data = st.text_input("Data (ex: 2025-10-10)")
+    nova_maquina = st.text_input("Máquina (ex: M1)")
+    novo_turno = st.text_input("Turno (ex: Manhã)")
+    novas_pecas = st.text_input("Peças Produzidas")
+    novas_pecas_defeituosas = st.text_input("Peças Defeituosas")
     
-# Form= st.sidebar.form('entrada',clear_on_submit=True)#side bar
-# Form.header("Edite os dados da maquina:")
-
-# nova_data=Form.text_input("data: ")
-# novas_maquina=Form.text_input("maquina: ")
-# turno = Form.text_input("turno: ")
-# peças = Form.text_input("peças produzidas: ")
-# pec = Form.text_input("peças defeituosas: ")
-    editar_df= form.data_editor(df)
-    bt2=form.form_submit_button(' salvar')
-   
+    submit_add = st.form_submit_button("Adicionar")
     
-#botao 2 novos dados
+    if submit_add:  # Se o botão for clicado
+        nova_linha = {
+            'Data': nova_data,
+            'Máquina': nova_maquina,
+            'Turno': novo_turno,
+            'Peças Produzidas': int(novas_pecas) if novas_pecas.isdigit() else 0,
+            'Peças Defeituosas': int(novas_pecas_defeituosas) if novas_pecas_defeituosas.isdigit() else 0
+        }
+        df = pd.concat([df, pd.DataFrame([nova_linha])], ignore_index=True)  # Adiciona a nova linha
+        df['Peças Boas'] = df['Peças Produzidas'] - df['Peças Defeituosas']  # Recalcula peças boas
+        df['Eficiência (%)'] = (df['Peças Boas'] / df['Peças Produzidas']) * 100  # Recalcula eficiência
+        st.success("Registro adicionado!")
 
-    if bt2:
-       if not isinstance(df,pd.DataFrame):
-           df=pd.DataFrame()
+# 3. Formulário para editar registros (simples, baseado na data)
+with st.sidebar.form("editar_dados"):
+    st.header("Editar Registro")
+    data_to_edit = st.text_input("Data para editar (ex: 2025-10-10)")
+    nova_maquina_edit = st.text_input("Nova Máquina")
+    novo_turno_edit = st.text_input("Novo Turno")
+    novas_pecas_edit = st.text_input("Novas Peças Produzidas")
+    novas_pecas_defeituosas_edit = st.text_input("Novas Peças Defeituosas")
     
-       df=pd.concat([df,editar_df],ignore_index=True)
-    form.data_editor(df)
-    df.to_csv("DADOS.csv",index=False)
-except OSError:
-    form.warning("diretorio inexistente")
-except AttributeError:
-    form.warning("sem arquivo")
-#/////////////////////////////////////////////////////////////////////
+    submit_edit = st.form_submit_button("Atualizar")
+    
+    if submit_edit:  # Se o botão for clicado
+        if data_to_edit in df['Data'].values:  # Verifica se a data existe
+            indice = df[df['Data'] == data_to_edit].index[0]  # Pega o primeiro índice
+            df.at[indice, 'Máquina'] = nova_maquina_edit
+            df.at[indice, 'Turno'] = novo_turno_edit
+            df.at[indice, 'Peças Produzidas'] = int(novas_pecas_edit) if novas_pecas_edit.isdigit() else df.at[indice, 'Peças Produzidas']
+            df.at[indice, 'Peças Defeituosas'] = int(novas_pecas_defeituosas_edit) if novas_pecas_defeituosas_edit.isdigit() else df.at[indice, 'Peças Defeituosas']
+            df['Peças Boas'] = df['Peças Produzidas'] - df['Peças Defeituosas']  # Recalcula
+            df['Eficiência (%)'] = (df['Peças Boas'] / df['Peças Produzidas']) * 100  # Recalcula
+            st.success("Registro editado!")
+        else:
+            st.error("Data não encontrada.")
+
+# 4. Filtros interativos
+st.header("Filtros")
+data_inicio = st.date_input("Data de início")
+data_fim = st.date_input("Data de fim")
+maquina_selecionada = st.selectbox("Selecione uma máquina", options=['Todas'] + list(df['Máquina'].unique()))
+turno_selecionado = st.selectbox("Selecione um turno", options=['Todos'] + list(df['Turno'].unique()))
+
+df_filtrado = df.copy()  # Cria uma cópia para filtrar
+
+# Aplica filtros
+df_filtrado = df_filtrado[(df_filtrado['Data'] >= str(data_inicio)) & (df_filtrado['Data'] <= str(data_fim))]
+if maquina_selecionada != 'Todas':
+    df_filtrado = df_filtrado[df_filtrado['Máquina'] == maquina_selecionada]
+if turno_selecionado != 'Todos':
+    df_filtrado = df_filtrado[df_filtrado['Turno'] == turno_selecionado]
+
+# 5. Gráficos interativos
+st.header("Gráficos")
+if not df_filtrado.empty:  # Só cria gráficos se houver dados
+    # Gráfico 1: Produção diária por máquina
+    producao_diaria = df_filtrado.groupby(['Data', 'Máquina'])['Peças Produzidas'].sum().unstack()
+    plt.figure(figsize=(8, 4))
+    producao_diaria.plot(kind='bar', ax=plt.gca())
+    plt.title("Produção Diária por Máquina")
+    plt.xlabel("Data")
+    plt.ylabel("Peças Produzidas")
+    st.pyplot(plt)  # Exibe o gráfico no Streamlit
+    
+    # Gráfico 2: Taxa de defeitos
+    df_filtrado['Taxa de Defeitos (%)'] = (df_filtrado['Peças Defeituosas'] / df_filtrado['Peças Produzidas']) * 100
+    taxa_defeitos = df_filtrado.groupby('Máquina')['Taxa de Defeitos (%)'].mean()
+    plt.figure(figsize=(8, 4))
+    taxa_defeitos.plot(kind='bar')
+    plt.title("Taxa de Defeitos por Máquina")
+    plt.ylabel("Taxa de Defeitos (%)")
+    st.pyplot(plt)  # Exibe o gráfico
+
+# 6. Cálculo e exibição de métricas
+st.header("Métricas de Eficiência")
+if not df_filtrado.empty:
+    eficiencia_diaria = df_filtrado['Eficiência (%)'].mean()  # Média de eficiência
+    media_producao = df_filtrado.groupby('Máquina')['Peças Produzidas'].mean()  # Média de produção por máquina
+    st.write(f"Média de Eficiência Diária: {eficiencia_diaria:.2f}%")
+    st.write("Média de Produção por Máquina:")
+    st.write(media_producao)
+    
+    # 7. Alertas automáticos
+    if eficiencia_diaria < 90:  # Alerta se eficiência < 90%
+        st.error("Alerta: Eficiência diária abaixo de 90%!")
+    for maquina in df_filtrado['Máquina'].unique():
+        if df_filtrado[df_filtrado['Máquina'] == maquina]['Peças Produzidas'].sum() < 80:  # Alerta se produção < 80 peças/dia
+            st.error(f"Alerta: Produção da máquina {maquina} abaixo de 80 peças!")
+
+# 8. Botão para salvar os dados atualizados
+if st.button("Salvar Dados Atualizados"):
+    df.to_csv("DADOS.csv", index=False)  # Salva em um novo arquivo
+    st.success("Dados salvos em 'dados_atualizados.csv'!")
+
+
+
+
+
 
 
 
