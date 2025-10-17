@@ -62,8 +62,16 @@ with st.sidebar.form("editar_dados"):
             indice = df[df['Data'] == data_to_edit].index[0]  # Pega o primeiro índice
             df.at[indice, 'Máquina'] = nova_maquina_edit
             df.at[indice, 'Turno'] = novo_turno_edit
-            df.at[indice, 'Peças Produzidas'] = int(novas_pecas_edit) if novas_pecas_edit.isdigit() else df.at[indice, 'Peças Produzidas']
-            df.at[indice, 'Peças Defeituosas'] = int(novas_pecas_defeituosas_edit) if novas_pecas_defeituosas_edit.isdigit() else df.at[indice, 'Peças Defeituosas']
+            df.at[indice, 'Peças Produzidas'] = int(novas_pecas_edit)
+            if novas_pecas_edit.isdigit() :
+                df.at[indice, 'Peças Produzidas'] = int(novas_pecas_edit)
+            else :
+                df.at[indice, 'Peças Produzidas'] = df.at[indice, 'Peças Produzidas']
+            df.at[indice, 'Peças Defeituosas'] = int(novas_pecas_defeituosas_edit)
+            if novas_pecas_defeituosas_edit.isdigit():
+                df.at[indice, 'Peças Defeituosas'] = int(novas_pecas_defeituosas_edit)
+            else:
+                df.at[indice, 'Peças Defeituosas'] = df.at[indice, 'Peças Defeituosas']
             df['Peças Boas'] = df['Peças Produzidas'] - df['Peças Defeituosas']  # Recalcula
             df['Eficiência (%)'] = (df['Peças Boas'] / df['Peças Produzidas']) * 100  # Recalcula
             st.success("Registro editado!")
@@ -127,8 +135,6 @@ if not df_filtrado.empty:
 if st.button("Salvar Dados Atualizados"):
     df.to_csv("DADOS.csv", index=False)  # Salva em um novo arquivo
     st.success("Dados salvos em 'dados_atualizados.csv'!")
-
-
 
 
 
